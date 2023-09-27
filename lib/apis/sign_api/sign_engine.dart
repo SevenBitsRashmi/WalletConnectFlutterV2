@@ -1265,6 +1265,81 @@ class SignEngine implements ISignEngine {
   }
 
   Future<void> _onSessionEventRequest(
+      String topic,
+      JsonRpcRequest payload,
+      ) async {
+    try {
+      final request = WcSessionEventRequest.fromJson(payload.params);
+      final SessionEventParams event = request.event;
+      await _isValidEmit(
+        topic,
+        event,
+        request.chainId,
+      );
+
+      final String eventKey = _getRegisterKey(
+        request.chainId,
+        request.event.name,
+      );
+      //  if (_eventHandlers.containsKey(eventKey)) {
+      /*   final handler = _methodHandlers[eventKey];
+        if (handler != null) {
+          final handler = _eventHandlers[eventKey]!;
+          try {
+            await handler(
+              topic,
+              event.data,
+            );
+          } catch (err) {
+            await core.pairing.sendError(
+              payload.id,
+              topic,
+              payload.method,
+              JsonRpcError.invalidParams(
+                err.toString(),
+              ),
+            );
+          }
+        }*/
+
+      await core.pairing.sendResult(
+        payload.id,
+        topic,
+        MethodConstants.WC_SESSION_REQUEST,
+        true,
+      );
+
+      onSessionEvent.broadcast(
+        SessionEvent(
+          payload.id,
+          topic,
+          event.name,
+          request.chainId,
+          event.data,
+        ),
+      );
+      /*   } else {
+        await core.pairing.sendError(
+          payload.id,
+          topic,
+          payload.method,
+          JsonRpcError.methodNotFound(
+            'No handler found for chainId:event -> $eventKey',
+          ),
+        );
+      }*/
+    } on WalletConnectError catch (err) {
+      await core.pairing.sendError(
+        payload.id,
+        topic,
+        payload.method,
+        JsonRpcError.invalidParams(
+          err.message,
+        ),
+      );
+    }
+  }
+ /* Future<void> _onSessionEventRequest(
     String topic,
     JsonRpcRequest payload,
   ) async {
@@ -1338,7 +1413,7 @@ class SignEngine implements ISignEngine {
         ),
       );
     }
-  }
+  }*/
 
   /// ---- Event Registers ---- ///
 
